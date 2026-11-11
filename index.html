@@ -1,0 +1,311 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Discord Tools</title>
+<meta name="description" content="Webhook composer, snowflake decoder, invite checker and HypeSquad guide. Runs entirely in your browser.">
+<style>
+:root{--bg:#f6f7f9;--card:#fff;--fg:#1c1f26;--mut:#667085;--bd:#e2e5ea;--ac:#5865f2;--ok:#16a34a;--er:#dc2626;--wn:#d97706;color-scheme:light dark}
+@media(prefers-color-scheme:dark){:root{--bg:#0f1115;--card:#171a21;--fg:#e8eaf0;--mut:#9aa3b2;--bd:#262b36}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font:15px/1.55 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+main{max-width:920px;margin:0 auto;padding:24px 16px 48px}
+h1{font-size:1.6rem;margin:0}h2{font-size:1.05rem;margin:0 0 12px}
+.sub{color:var(--mut);margin:4px 0 20px}
+nav{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+nav button{background:none;border:1px solid var(--bd);color:var(--mut);padding:7px 14px;border-radius:8px;cursor:pointer;font:inherit}
+nav button[aria-selected=true]{background:var(--ac);border-color:var(--ac);color:#fff}
+section{display:none}section.on{display:block}
+.grid{display:grid;gap:16px;grid-template-columns:repeat(auto-fit,minmax(300px,1fr))}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:18px;margin-bottom:16px}
+.grid .card{margin:0}
+label{display:block;font-size:.8rem;color:var(--mut);margin:10px 0 4px}
+input,textarea,select{width:100%;padding:8px 10px;background:var(--bg);color:var(--fg);border:1px solid var(--bd);border-radius:8px;font:inherit}
+textarea{min-height:90px;resize:vertical}
+.row{display:flex;gap:8px;margin-top:10px}.row>*{flex:1}
+button.b{padding:8px 12px;border:1px solid var(--bd);background:var(--card);color:var(--fg);border-radius:8px;cursor:pointer;font:inherit;margin-top:10px}
+button.p{background:var(--ac);border-color:var(--ac);color:#fff}
+button.d{color:var(--er);border-color:var(--er)}
+button:disabled{opacity:.5;cursor:not-allowed}
+pre{background:var(--bg);border:1px solid var(--bd);border-radius:8px;padding:12px;overflow:auto;font-size:.82rem;margin:10px 0 0}
+code{font-family:ui-monospace,Consolas,monospace}
+.res{margin-top:12px;display:none;font-size:.9rem}.res.on{display:block}
+.res div{display:flex;justify-content:space-between;gap:12px;padding:4px 0;border-bottom:1px solid var(--bd)}
+.res span:first-child{color:var(--mut)}
+.note{border-left:3px solid var(--wn);padding:8px 12px;background:var(--bg);border-radius:0 8px 8px 0;color:var(--mut);font-size:.88rem;margin:10px 0}
+ol{padding-left:20px;color:var(--mut)}
+#log{max-height:220px;overflow:auto;font:.8rem ui-monospace,Consolas,monospace}
+#log div{padding:3px 0;border-bottom:1px solid var(--bd)}
+.ok{color:var(--ok)}.err{color:var(--er)}.warn{color:var(--wn)}
+footer{color:var(--mut);font-size:.8rem;text-align:center;margin-top:24px}
+a{color:var(--ac)}
+</style>
+</head>
+<body>
+<main>
+<h1>Discord Tools</h1>
+<p class="sub">Webhooks, snowflakes, invites and HypeSquad. Everything runs in your browser. Nothing is stored or sent anywhere except to Discord.</p>
+
+<nav role="tablist">
+<button role="tab" data-t="wh" aria-selected="true">Webhooks</button>
+<button role="tab" data-t="hs" aria-selected="false">HypeSquad</button>
+<button role="tab" data-t="lk" aria-selected="false">Lookup</button>
+<button role="tab" data-t="gd" aria-selected="false">Guides</button>
+</nav>
+
+<section id="wh" class="on">
+<div class="grid">
+<div class="card">
+<h2>Send message</h2>
+<label for="url">Webhook URL</label>
+<input id="url" placeholder="https://discord.com/api/webhooks/..." autocomplete="off" spellcheck="false">
+<label for="thread">Thread ID (optional)</label>
+<input id="thread" inputmode="numeric">
+<label for="msg">Message</label>
+<textarea id="msg"></textarea>
+<div class="row">
+<input id="pid" placeholder="User or role ID">
+<select id="ptype"><option value="u">User</option><option value="r">Role</option></select>
+<button class="b" id="ping" style="margin:0">Insert ping</button>
+</div>
+<button class="b p" id="send" style="width:100%">Send</button>
+<label>Repeat send (max 25, min 1000 ms delay, backs off on 429)</label>
+<div class="row"><input id="cnt" type="number" value="5" min="1" max="25"><input id="dly" type="number" value="1500" min="1000" step="100"></div>
+<div class="row"><button class="b p" id="bgo">Start</button><button class="b d" id="bstop" disabled>Stop</button></div>
+</div>
+
+<div class="card">
+<h2>Manage webhook</h2>
+<button class="b" id="info" style="width:100%;margin-top:0">Fetch info</button>
+<div class="res" id="infoRes"></div>
+<label for="nm">New name</label>
+<input id="nm">
+<label for="av">New avatar</label>
+<input id="av" type="file" accept="image/png,image/jpeg,image/webp,image/gif">
+<div class="row"><button class="b p" id="save">Apply</button><button class="b d" id="del">Delete webhook</button></div>
+</div>
+</div>
+</section>
+
+<section id="hs">
+<div class="card">
+<h2>HypeSquad house script</h2>
+<div class="note">Your token is your password. This page never asks for it. You paste it into your own browser console, on discord.com only, and nowhere else.</div>
+<label for="house">House</label>
+<select id="house"><option value="1">1 - Bravery</option><option value="2">2 - Brilliance</option><option value="3" selected>3 - Balance</option></select>
+<pre><code id="hcode"></code></pre>
+<div class="row"><button class="b p" id="hcopy">Copy script</button><button class="b" id="hrm">Show remove-badge script</button></div>
+<h2 style="margin-top:20px">Steps</h2>
+<ol>
+<li>Open <b>discord.com/app</b> in a desktop browser and log in.</li>
+<li>Press <code>F12</code>, go to <b>Network</b>, refresh, filter by <code>/api</code>, and click any request.</li>
+<li>Under <b>Request Headers</b>, copy the <code>authorization</code> value.</li>
+<li>Open the <b>Console</b> tab and type <code>allow pasting</code>, then Enter.</li>
+<li>Paste the script above, replace <code>PASTE_YOUR_TOKEN_HERE</code> (keep the quotes), and press Enter.</li>
+<li><code>✅ Joined house</code> means done. Hard refresh (<code>Ctrl+Shift+R</code>) to see the badge.</li>
+</ol>
+<p style="color:var(--mut);font-size:.88rem">Errors: 401 bad or truncated token, 429 rate limited (wait a few minutes), 403 account restricted. If you suspect your token leaked, change your password; that invalidates it. Source: <a href="hypesquad.js">hypesquad.js</a>.</p>
+</div>
+</section>
+
+<section id="lk">
+<div class="grid">
+<div class="card">
+<h2>Snowflake decoder</h2>
+<label for="sf">Discord ID</label>
+<input id="sf" inputmode="numeric" placeholder="e.g. 175928847299117063">
+<button class="b p" id="sfgo">Decode</button>
+<div class="res" id="sfRes"></div>
+</div>
+<div class="card">
+<h2>Invite checker</h2>
+<label for="inv">Invite code or URL</label>
+<input id="inv" placeholder="discord.gg/code">
+<button class="b p" id="invgo">Check</button>
+<div class="res" id="invRes"></div>
+</div>
+</div>
+</section>
+
+<section id="gd">
+<div class="card"><h2>Get a webhook URL</h2>
+<ol><li>Server Settings → Integrations → Webhooks.</li><li>New Webhook, pick a channel.</li><li>Copy Webhook URL.</li></ol></div>
+<div class="card"><h2>Get user and role IDs</h2>
+<ol><li>User Settings → Advanced → enable Developer Mode.</li><li>Right-click a user or role → Copy ID.</li></ol></div>
+</section>
+
+<div class="card"><h2>Session log <button class="b" id="clr" style="margin:0 0 0 8px;padding:2px 8px;font-size:.75rem">Clear</button></h2><div id="log"></div></div>
+<footer>Not affiliated with Discord. MIT licensed. <a href="README.md">README</a></footer>
+</main>
+
+<script>
+const $=s=>document.querySelector(s), $$=s=>document.querySelectorAll(s);
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+
+// tabs
+$$('nav button').forEach(b=>b.onclick=()=>{
+  $$('nav button').forEach(x=>x.setAttribute('aria-selected',x===b));
+  $$('section').forEach(s=>s.classList.toggle('on',s.id===b.dataset.t));
+});
+
+// log (textContent only, so nothing from the network can inject markup)
+function log(type,text){
+  const d=document.createElement('div');d.className=type;
+  d.textContent=new Date().toLocaleTimeString()+'  '+text;
+  $('#log').prepend(d);
+}
+$('#clr').onclick=()=>$('#log').replaceChildren();
+log('ok','Ready.');
+
+// render key/value rows
+function rows(el,pairs){
+  el.replaceChildren(...pairs.map(([k,v])=>{
+    const d=document.createElement('div'),a=document.createElement('span'),b=document.createElement('span');
+    a.textContent=k;b.textContent=v;d.append(a,b);return d;
+  }));
+  el.classList.add('on');
+}
+
+// webhooks
+function hook(){
+  try{
+    const u=new URL($('#url').value.trim());
+    const m=u.pathname.match(/\/api\/(?:v\d+\/)?webhooks\/(\d+)\/([\w-]+)/);
+    if(!m||!/(^|\.)discord(app)?\.com$/.test(u.hostname))throw 0;
+    return{base:u.origin+u.pathname.replace(/\/$/,'')};
+  }catch{log('err','Invalid Discord webhook URL.');return null}
+}
+function target(h){const t=$('#thread').value.trim();return h.base+(t?'?thread_id='+encodeURIComponent(t):'')}
+const post=(h,content)=>fetch(target(h),{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({content})});
+
+$('#ping').onclick=()=>{
+  const id=$('#pid').value.trim();if(!/^\d+$/.test(id))return log('warn','Enter a numeric ID.');
+  $('#msg').value+=($('#msg').value?' ':'')+($('#ptype').value==='r'?`<@&${id}>`:`<@${id}>`);
+  $('#pid').value='';
+};
+
+$('#send').onclick=async()=>{
+  const h=hook(),m=$('#msg').value.trim();if(!h||!m)return log('warn','URL and message required.');
+  try{const r=await post(h,m);log(r.ok?'ok':'err','Send: HTTP '+r.status)}catch(e){log('err','Network error: '+e.message)}
+};
+
+let stop=false;
+$('#bstop').onclick=()=>{stop=true;$('#bstop').disabled=true};
+$('#bgo').onclick=async()=>{
+  const h=hook(),m=$('#msg').value.trim();
+  const n=Math.min(25,Math.max(1,+$('#cnt').value||1)),d=Math.max(1000,+$('#dly').value||1000);
+  if(!h||!m)return log('warn','URL and message required.');
+  stop=false;$('#bgo').disabled=true;$('#bstop').disabled=false;
+  let sent=0;
+  for(let i=0;i<n&&!stop;i++){
+    try{
+      const r=await post(h,m);
+      if(r.status===429){
+        const w=(await r.json().catch(()=>({}))).retry_after;
+        log('warn','Rate limited, waiting.');await sleep(w?w*1000+250:d*2);i--;continue;
+      }
+      if(!r.ok)throw new Error('HTTP '+r.status);
+      sent++;if(i<n-1)await sleep(d);
+    }catch(e){log('err','Stopped: '+e.message);break}
+  }
+  log(stop?'warn':'ok',`Repeat send ${stop?'stopped':'done'}: ${sent}/${n} delivered.`);
+  $('#bgo').disabled=false;$('#bstop').disabled=true;
+};
+
+$('#info').onclick=async()=>{
+  const h=hook();if(!h)return;
+  try{
+    const r=await fetch(h.base);if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    rows($('#infoRes'),[['Name',j.name||'-'],['Guild ID',j.guild_id||'-'],['Channel ID',j.channel_id||'-']]);
+    log('ok','Fetched webhook info.');
+  }catch(e){log('err','Info failed: '+e.message)}
+};
+
+$('#save').onclick=async()=>{
+  const h=hook();if(!h)return;
+  const body={},name=$('#nm').value.trim(),f=$('#av').files[0];
+  if(name)body.name=name;
+  if(f){
+    if(f.size>8e6)return log('err','Image too large (8 MB max).');
+    body.avatar=await new Promise(res=>{const r=new FileReader();r.onload=()=>res(r.result);r.readAsDataURL(f)});
+  }
+  if(!Object.keys(body).length)return log('warn','Nothing to change.');
+  try{
+    const r=await fetch(h.base,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+    log(r.ok?'ok':'err','Update: HTTP '+r.status);
+  }catch(e){log('err','Network error: '+e.message)}
+};
+
+$('#del').onclick=async()=>{
+  const h=hook();if(!h)return;
+  if(!confirm('Permanently delete this webhook?'))return;
+  try{const r=await fetch(h.base,{method:'DELETE'});log(r.ok?'ok':'err','Delete: HTTP '+r.status)}
+  catch(e){log('err','Network error: '+e.message)}
+};
+
+// HypeSquad (script text only; the token is never entered on this page)
+let showRm=false;
+function hcode(){
+  const h=$('#house').value;
+  $('#hcode').textContent=showRm
+?`const myToken = "PASTE_YOUR_TOKEN_HERE";
+
+fetch("/api/v9/hypesquad/online", {
+  method: "DELETE",
+  headers: { "Authorization": myToken },
+}).then(r => console.log(r.status === 204 ? "✅ Badge removed" : "❌ " + r.status));`
+:`const houseId = ${h}; // 1: Bravery, 2: Brilliance, 3: Balance
+const myToken = "PASTE_YOUR_TOKEN_HERE";
+
+fetch("/api/v9/hypesquad/online", {
+  method: "POST",
+  headers: {
+    "Content-Type": "application/json",
+    "Authorization": myToken,
+  },
+  body: JSON.stringify({ house_id: houseId }),
+}).then(r => console.log(r.status === 204 ? "✅ Joined house " + houseId : "❌ " + r.status));`;
+  $('#hrm').textContent=showRm?'Show join script':'Show remove-badge script';
+  $('#house').disabled=showRm;
+}
+$('#house').onchange=hcode;
+$('#hrm').onclick=()=>{showRm=!showRm;hcode()};
+$('#hcopy').onclick=()=>navigator.clipboard.writeText($('#hcode').textContent).then(()=>log('ok','Script copied.'),()=>log('err','Copy blocked by browser.'));
+hcode();
+
+// snowflake
+$('#sfgo').onclick=()=>{
+  const id=$('#sf').value.trim();
+  if(!/^\d{15,20}$/.test(id))return log('warn','Not a valid snowflake.');
+  const s=BigInt(id),ts=Number((s>>22n)+1420070400000n),d=new Date(ts);
+  rows($('#sfRes'),[
+    ['Created',d.toLocaleString()],['UTC',d.toISOString()],
+    ['Age',Math.floor((Date.now()-ts)/864e5).toLocaleString()+' days'],
+    ['Worker',Number((s&0x3E0000n)>>17n)],['Process',Number((s&0x1F000n)>>12n)],['Increment',Number(s&0xFFFn)]
+  ]);
+  log('ok','Decoded '+id);
+};
+
+// invite
+$('#invgo').onclick=async()=>{
+  let c=$('#inv').value.trim();
+  const m=c.match(/(?:discord\.gg\/|discord(?:app)?\.com\/invite\/)([\w-]+)/);if(m)c=m[1];
+  if(!/^[\w-]+$/.test(c))return log('warn','Enter an invite code or URL.');
+  try{
+    const r=await fetch('https://discord.com/api/v10/invites/'+c+'?with_counts=true');
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    rows($('#invRes'),[
+      ['Server',j.guild?.name||'Unknown'],
+      ['Members',j.approximate_member_count?.toLocaleString()||'-'],
+      ['Online',j.approximate_presence_count?.toLocaleString()||'-'],
+      ['Channel',j.channel?.name?'#'+j.channel.name:'-']
+    ]);
+    log('ok','Invite resolved.');
+  }catch(e){log('err','Invite check failed: '+e.message)}
+};
+</script>
+</body>
+</html>
